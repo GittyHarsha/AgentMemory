@@ -1,0 +1,74 @@
+############################
+# Node / TypeScript
+############################
+node_modules/
+dist/
+*.tsbuildinfo
+
+############################
+# Logs & Diagnostics
+############################
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+############################
+# Environment / Secrets
+############################
+.env
+.env.*
+!.env.example
+
+############################
+# Coverage / Testing
+############################
+coverage/
+.nyc_output/
+
+############################
+# OS / Editor
+############################
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+*.iml
+
+############################
+# Build Artifacts / Caches
+############################
+tmp/
+temp/
+.cache/
+
+############################
+# SQLite Database & WAL files
+############################
+memories.db
+memories.db-wal
+memories.db-shm
+memories.db-journal
+*.sqlite
+*.db
+
+############################
+# Generated Content Storage
+############################
+data/
+
+############################
+# MCP / Runtime miscellany (uncomment if generated at runtime)
+############################
+# mcp-runtime.log
+
+############################
+# Optional local VS Code settings (keep if you want project-level)
+############################
+.vscode/
+
+.vscode
+dist
