@@ -58,7 +58,7 @@ memories.db-journal
 ############################
 # Generated Content Storage
 ############################
-data/
+.memory/
 
 ############################
 # MCP / Runtime miscellany (uncomment if generated at runtime)

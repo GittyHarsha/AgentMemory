@@ -13,7 +13,7 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import Database from 'better-sqlite3';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { dirname, resolve, sep } from 'path';
 import { openDatabase } from './db/connection.js';
 import { initializeSchema } from './db/schema.js';
@@ -34,7 +34,7 @@ class AgentMemoryServer {
   private repo: MemoryRepository;
   private search: SearchService;
 
-  constructor(dbPath: string = './memories.db', baseContentDir: string = './data') {
+  constructor(dbPath: string = './memories.db', baseContentDir: string = process.env.AGENT_MEMORY_CONTENT_DIR || './.memory') {
     this.dbPath = dbPath;
     this.baseContentDir = baseContentDir;
     
@@ -59,6 +59,7 @@ class AgentMemoryServer {
         capabilities: {
           resources: {},
           tools: {},
+          prompts: {},
         },
       }
     );
@@ -488,19 +489,44 @@ class AgentMemoryServer {
 
   private async deleteMemory(args: unknown) {
     const { id } = DeleteMemorySchema.parse(args);
-    const ok = this.repo.delete(id);
-    if (!ok) {
+    // Fetch first to obtain file path
+    const existing = this.repo.get(id);
+    if (!existing) {
       throw new McpError(
         ErrorCode.InvalidRequest,
         `Memory with ID ${id} not found`
       );
     }
 
+    // Attempt database deletion first (to avoid orphaned DB row pointing to missing file)
+    const ok = this.repo.delete(id);
+    if (!ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to delete memory with ID ${id}`
+      );
+    }
+
+    // Best-effort file deletion, restricted to base content dir for safety
+    let fileDeleted = false;
+    try {
+      const resolvedBase = resolve(this.baseContentDir) + sep;
+      const resolvedTarget = resolve(existing.file_path);
+      const isWithinBase = resolvedTarget.toLowerCase().startsWith(resolvedBase.toLowerCase());
+      if (isWithinBase && existsSync(resolvedTarget)) {
+        unlinkSync(resolvedTarget);
+        fileDeleted = true;
+      }
+    } catch (e) {
+      // Swallow error but report status below
+    }
+
+    const payload = { id, file_path: existing.file_path, file_deleted: fileDeleted };
     return {
       content: [
         {
           type: 'text',
-          text: `Memory with ID ${id} deleted successfully`,
+          text: JSON.stringify({ message: 'Memory deleted', ...payload }, null, 2),
         },
       ],
     };

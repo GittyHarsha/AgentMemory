@@ -39,7 +39,7 @@ Watch & rebuild:
 npm run watch
 ```
 
-The server communicates over stdio (MCP expectation). No extra config needed; a `memories.db` file will be created beside the binary plus a `data` directory for stored files.
+The server communicates over stdio (MCP expectation). No extra config needed; a `memories.db` file will be created beside the binary plus a `/.memory` directory for stored files.
 
 ## Tools (MCP)
 
@@ -52,7 +52,7 @@ The server communicates over stdio (MCP expectation). No extra config needed; a 
 | `delete_memory` | Delete memory row (cascades keywords & FTS entry). | `id` (number, required) | confirmation text |
 | `list_memories` | Page through memories with keywords + pagination meta. | `limit` (number 1–100, default 20)<br>`offset` (number ≥0, default 0) | `{ memories:[...], pagination:{ total, limit, offset, has_more } }` |
 | `optimize_index` | Placeholder; future FTS5 optimize/merge. | (none) | success text |
-| `read_file` | Read stored file (enforces path confinement; size‑capped 1MB). | `filePath` (string, absolute inside data dir) | `{ file_path, file_contents, file_exists }` |
+| `read_file` | Read stored file (enforces path confinement; size‑capped 1MB). | `filePath` (string, absolute inside .memory dir) | `{ file_path, file_contents, file_exists }` |
 
 Notes:
 - All errors returned via MCP error codes (e.g., InvalidRequest, InternalError).
@@ -110,7 +110,7 @@ Tools remain concise action interfaces; prompts encapsulate richer transformatio
 ## File Storage Layout
 
 When you upsert, the provided logical filePath is transformed into:
-`data/<YYYY>/<MM>/<DD>/<basename>.md`
+`.memory/<YYYY>/<MM>/<DD>/<basename>.md`
 
 Rules:
 - Date components use the current system date at upsert time.
@@ -141,7 +141,7 @@ Triggers keep `memories_fts` synchronized (delete then insert strategy for updat
 
 Defaults (can be overridden by modifying constructor args in `src/index.ts`):
 - Database path: `./memories.db`
-- Content base directory: `./data`
+- Content base directory: `./.memory`
 - File read max size: 1 MB
 
 ## MCP Client Integration (mcp.json example)
@@ -173,7 +173,7 @@ Place an `mcp.json` in the location your client expects (often project root or a
 Notes:
 - Adjust the path if your checkout differs.
 - Double backslashes are for JSON escaping; single backslashes are fine if the loader tolerates them.
-- Defaults: DB at `./memories.db`, content dir `./data`. Override by adding an `env` object under the server (e.g. `"env": { "AGENT_MEMORY_DB": "D:/mem/db.sqlite" }`).
+- Defaults: DB at `./memories.db`, content dir: `./.memory`. Override via `AGENT_MEMORY_CONTENT_DIR`.
 
 ### 3. Launch / Reload Client
 Restart or reload the MCP‑aware client so it picks up `mcp.json`.
@@ -204,6 +204,10 @@ Run `npm run watch` to auto‑rebuild while the client continues using `dist/ind
 - Add embedding generation hook (hybrid lexical + vector search)
 - Optional encryption at rest
 
+## Directory Naming Rationale
+
+Hidden `.memory/` is used to reduce workspace noise. Set `AGENT_MEMORY_CONTENT_DIR` to override.
+
 ## Security Notes
 
 - The read_file tool now enforces that target paths reside within the configured content base directory to prevent path traversal / arbitrary file reads.
@@ -219,6 +223,3 @@ All tool errors surface MCP error codes (InvalidRequest, InternalError, etc.). C
 
 PRs welcome. Keep additions modular and update this README if interfaces change.
 
-## License
-
-MIT (add a LICENSE file if distributing publicly).
